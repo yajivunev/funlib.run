@@ -1,0 +1,11 @@
+num_cpus = 5
+num_gpus = 1
+memory = 25600
+working_directory = .
+singularity = ""
+host = ""
+queue = "normal"
+environment = ""
+batch = False
+mount_dirs = ""
+
