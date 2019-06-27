@@ -70,7 +70,7 @@ check_call(run_singularity_command,
 
 ## Usage with Daisy
 When used with daisy.call do not expand the cmd to a string via setting expand=False:
-```
+```python
 cmd = run(command=base_command,
           queue=queue,
           num_gpus=1,
