@@ -10,5 +10,8 @@ setup(
         license='MIT',
         packages=[
             'funlib.run'
+        ],
+        install_requires=[
+            'configargparse'
         ]
 )
