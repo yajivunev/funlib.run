@@ -19,8 +19,9 @@ install-full: ~/.funlib.run
 	-rm -rf dist build $(PKG).egg-info
 
 .PHONY: install-dev
-install-de: ~/.funlib.run
-	pip install -r requirements
+install-dev: ~/.funlib.run
+	pip install -r requirements.txt
+	pip install -r requirements_dev.txt
 	pip install -e .[full]
 	-rm -rf dist build $(PKG).egg-info
 

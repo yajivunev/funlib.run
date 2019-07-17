@@ -1,4 +1,1 @@
 configargparse
-pytest
-pytest-cov
-flake8
