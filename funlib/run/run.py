@@ -1,9 +1,9 @@
-import configargparse
-import os
-import logging
-import numpy as np
-from subprocess import check_call
 from funlib.run.run_singularity import run_singularity
+from subprocess import check_call
+import configargparse
+import logging
+import os
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ def run(command,
     else:
         container_info = ", using singularity" +\
                          "image {}".format(singularity_image)
-        container_id = np.random.randint(0, 32767)
+        container_id = random.randint(0, 32767)
         os.environ["CONTAINER_NAME"] = "{}_{}".format(os.environ.get('USER'),
                                                       container_id)
         comment = '"{}|{}"'.format(singularity_image, container_id)

@@ -1,5 +1,4 @@
 configargparse
-numpy
 pytest
 pytest-cov
 flake8
