@@ -40,7 +40,7 @@ def run_singularity(command,
 
     if not os.path.exists(singularity_image):
         raise ValueError("Singularity image {}".format(singularity_image) +
-                         "does not exist.")
+                         " does not exist.")
 
     run_command = ['singularity exec']
     run_command += ['-B {}'.format(mount) for mount in mount_dirs
