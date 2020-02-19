@@ -64,6 +64,18 @@ p.add('-j', '--job_name', required=False,
       help="Name of job to submit",
       default="")
 
+p.add('-a', '--array_size', required=False, type=int,
+      help="Array size larger than 1 indicates an array job. Default is 1, "
+           "for a normal non-array job. Use \\$LSB_JOBINDEX to reference "
+           "the index, for example, to read a different config file "
+           "for each job in the array",
+      default=1)
+
+p.add('-l', '--array_limit', required=False, type=int,
+      help="Number of jobs in the array to run at once. Default is"
+           " no limit.",
+      default="")
+
 
 def run(command,
         num_cpus=5,
@@ -78,7 +90,9 @@ def run(command,
         mount_dirs=[],
         execute=False,
         expand=True,
-        job_name=""):
+        job_name="",
+        array_size=1,
+        array_limit=None):
 
     if not singularity_image or singularity_image == "None":
         container_info = ""
@@ -120,10 +134,19 @@ def run(command,
         use_host = "-m"
 
     run_command = [submit_cmd]
+
+    if comment and not job_name:
+        job_name = comment
+
+    if array_size > 1:
+        if not job_name:
+            job_name = 'array_job'
+        job_name += "[1-{}]".format(array_size)
+        if array_limit:
+            job_name += "%{}".format(array_limit)
+
     if job_name:
-        run_command += ["-J {}".format(job_name)]
-    elif comment:
-        run_command += ["-J {}".format(comment)]
+        run_command += ['-J "{}"'.format(job_name)]
     run_command += ["-n {}".format(num_cpus)]
     run_command += [use_gpus]
     run_command += ['-R "rusage[mem={}]"'.format(memory)]
@@ -159,6 +182,8 @@ if __name__ == "__main__":
     execute = True
     expand = True
     job_name = options.job_name
+    array_size = options.array_size
+    array_limit = options.array_limit
 
     run(command,
         num_cpus,
@@ -173,4 +198,6 @@ if __name__ == "__main__":
         mount_dirs,
         execute,
         expand,
-        job_name)
+        job_name,
+        array_size,
+        array_limit)
