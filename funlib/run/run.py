@@ -60,6 +60,10 @@ p.add('-d', '--mount_dirs', required=False,
       help="Directories to mount in container.",
       default="")
 
+p.add('-j', '--job_name', required=False,
+      help="Name of job to submit",
+      default="")
+
 
 def run(command,
         num_cpus=5,
@@ -73,7 +77,8 @@ def run(command,
         batch=False,
         mount_dirs=[],
         execute=False,
-        expand=True):
+        expand=True,
+        job_name=""):
 
     if not singularity_image or singularity_image == "None":
         container_info = ""
@@ -115,7 +120,9 @@ def run(command,
         use_host = "-m"
 
     run_command = [submit_cmd]
-    if comment:
+    if job_name:
+        run_command += ["-J {}".format(job_name)]
+    elif comment:
         run_command += ["-J {}".format(comment)]
     run_command += ["-n {}".format(num_cpus)]
     run_command += [use_gpus]
@@ -150,6 +157,8 @@ if __name__ == "__main__":
     batch = bool(options.batch)
     mount_dirs = list(options.mount_dirs.split(","))
     execute = True
+    expand = True
+    job_name = options.job_name
 
     run(command,
         num_cpus,
@@ -162,4 +171,6 @@ if __name__ == "__main__":
         environment_variable,
         batch,
         mount_dirs,
-        execute)
+        execute,
+        expand,
+        job_name)
