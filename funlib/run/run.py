@@ -13,15 +13,15 @@ p.add('-p', required=True,
       help="The command to run" +
       " e.g. ``python train.py``.")
 
-p.add('-c', '--num_cpus', required=False,
+p.add('-c', '--num_cpus', required=False, type=int,
       help="Number of CPUs to request, default 5.",
       default=5)
 
-p.add('-g', '--num_gpus', required=False,
+p.add('-g', '--num_gpus', required=False, type=int,
       help="Number of GPUs to request, default 1.",
       default=1)
 
-p.add('-m', '--memory', required=False,
+p.add('-m', '--memory', required=False, type=int,
       help="Amount of memory [MB] to request, default 25600.",
       default=25600)
 
@@ -49,16 +49,16 @@ p.add('-e', '--environment', required=False,
       help="Environmental variable.",
       default="")
 
-p.add('-b', '--batch', required=False,
+p.add('-b', '--batch', required=False, action='store_true',
       help="If given run command in background." +
            "This uses sbatch to submit" +
            "a task, see the status with bjobs. If not given, this call" +
-           "will block and return the exit code of <command>.",
-           default=False)
+           "will block and return the exit code of <command>.")
 
-p.add('-d', '--mount_dirs', required=False,
-      help="Directories to mount in container.",
-      default="")
+p.add('-d', '--mount_dirs', nargs='*',
+      help="Directories to mount in container."
+           " If multiple, separate with space",
+      default=[])
 
 p.add('-j', '--job_name', required=False,
       help="Name of job to submit",
@@ -100,11 +100,8 @@ def run(command,
         log_file=None):
 
     if not singularity_image or singularity_image == "None":
-        container_info = ""
         comment = ""
     else:
-        container_info = ", using singularity" +\
-                         "image {}".format(singularity_image)
         container_id = random.randint(0, 32767)
         os.environ["CONTAINER_NAME"] = "{}_{}".format(os.environ.get('USER'),
                                                       container_id)
@@ -116,11 +113,10 @@ def run(command,
                                   working_dir, mount_dirs)
 
     if execute:
-        logger.info("Scheduling job on {} CPUs, {} GPUs,".format(num_cpus,
-                                                                 num_gpus) +
-                    " {} MB in {}{}".format(memory,
-                                            container_info,
-                                            working_dir))
+        logger.info("Scheduling job on {} CPUs, {} GPUs.".format(
+                        num_cpus, num_gpus) +
+                    " {} MB with container '{}' in working dir '{}'".format(
+                        memory, singularity_image, working_dir))
 
     if log_file:
         log = "-o {}".format(log_file)
@@ -181,16 +177,16 @@ if __name__ == "__main__":
     options = p.parse_args()
 
     command = options.p
-    num_cpus = int(options.num_cpus)
-    num_gpus = int(options.num_gpus)
-    memory = int(options.memory)
+    num_cpus = options.num_cpus
+    num_gpus = options.num_gpus
+    memory = options.memory
     working_dir = options.working_directory
     singularity_image = options.singularity
     host = options.host
     queue = options.queue
     environment_variable = options.environment
-    batch = bool(options.batch)
-    mount_dirs = list(options.mount_dirs.split(","))
+    batch = options.batch
+    mount_dirs = options.mount_dirs
     execute = True
     expand = True
     job_name = options.job_name
