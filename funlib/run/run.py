@@ -76,6 +76,10 @@ p.add('-l', '--array_limit', required=False, type=int,
            " no limit.",
       default="")
 
+p.add('-lg', '--log_file', required=False,
+      help="Name of log file for std out.",
+      default=None)
+
 
 def run(command,
         num_cpus=5,
@@ -92,7 +96,8 @@ def run(command,
         expand=True,
         job_name="",
         array_size=1,
-        array_limit=None):
+        array_limit=None,
+        log_file=None):
 
     if not singularity_image or singularity_image == "None":
         container_info = ""
@@ -117,10 +122,17 @@ def run(command,
                                       container_info,
                                       working_dir))
 
+    if log_file:
+        log = "-o {}".format(log_file)
+    else:
+        log = "-o %J.log"
+
     if not batch:
         submit_cmd = 'bsub -I -R "affinity[core(1)]"'
+    elif array_size > 1:
+        submit_cmd = 'bsub -R "affinity[core(1)]" ' + log
     else:
-        submit_cmd = 'bsub -o %J.log -K -R "affinity[core(1)]"'
+        submit_cmd = 'bsub -K -R "affinity[core(1)]" ' + log
 
     if num_gpus <= 0:
         use_gpus = ""
