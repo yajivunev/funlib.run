@@ -80,6 +80,11 @@ p.add('-lg', '--log_file', required=False,
       help="Name of log file for std out.",
       default=None)
 
+p.add('-nw', '--no_wait', action='store_false',
+      help="If given, don't block after submitting array jobs. Default is"
+           " to call bwait after array jobs to block until array job"
+           "is done. You must check exit status of each job individually.")
+
 
 def run(command,
         num_cpus=5,
@@ -97,7 +102,8 @@ def run(command,
         job_name="",
         array_size=1,
         array_limit=None,
-        log_file=None):
+        log_file=None,
+        no_wait=False):
 
     if not singularity_image or singularity_image == "None":
         comment = ""
@@ -127,6 +133,8 @@ def run(command,
         submit_cmd = 'bsub -I -R "affinity[core(1)]"'
     elif array_size > 1:
         submit_cmd = 'bsub -R "affinity[core(1)]" ' + log
+        if not no_wait:
+            bwait = "bwait -w 'ended({})'"
     else:
         submit_cmd = 'bsub -K -R "affinity[core(1)]" ' + log
 
@@ -149,6 +157,8 @@ def run(command,
     if array_size > 1:
         if not job_name:
             job_name = 'array_job'
+        if not no_wait:
+            bwait = bwait.format(job_name)
         job_name += "[1-{}]".format(array_size)
         if array_limit:
             job_name += "%{}".format(array_limit)
@@ -171,6 +181,9 @@ def run(command,
         run_command = ' '.join(run_command)
         check_call(run_command,
                    shell=True)
+        if bwait:
+            check_call(bwait,
+                       shell=True)
 
 
 if __name__ == "__main__":
@@ -192,6 +205,7 @@ if __name__ == "__main__":
     job_name = options.job_name
     array_size = options.array_size
     array_limit = options.array_limit
+    no_wait = options.no_wait
 
     run(command,
         num_cpus,
@@ -208,4 +222,5 @@ if __name__ == "__main__":
         expand,
         job_name,
         array_size,
-        array_limit)
+        array_limit,
+        no_wait)
