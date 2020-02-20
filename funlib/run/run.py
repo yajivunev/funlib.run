@@ -116,11 +116,11 @@ def run(command,
                                   working_dir, mount_dirs)
 
     if execute:
-        print("Scheduling job on {} CPUs, {} GPUs,".format(num_cpus,
-                                                           num_gpus) +
-              " {} MB in {}{}".format(memory,
-                                      container_info,
-                                      working_dir))
+        logger.info("Scheduling job on {} CPUs, {} GPUs,".format(num_cpus,
+                                                                 num_gpus) +
+                    " {} MB in {}{}".format(memory,
+                                            container_info,
+                                            working_dir))
 
     if log_file:
         log = "-o {}".format(log_file)
