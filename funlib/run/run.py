@@ -1,9 +1,12 @@
 from funlib.run.run_singularity import run_singularity
-from subprocess import check_call
+import subprocess as sp
 import configargparse
 import logging
 import os
 import random
+import re
+
+bsub_stdout_regex = re.compile("Job <(\d+)> is submitted*")
 
 logger = logging.getLogger(__name__)
 
@@ -74,16 +77,15 @@ p.add('-a', '--array_size', required=False, type=int,
 p.add('-l', '--array_limit', required=False, type=int,
       help="Number of jobs in the array to run at once. Default is"
            " no limit.",
-      default="")
+      default=None)
 
 p.add('-lg', '--log_file', required=False,
       help="Name of log file for std out.",
       default=None)
 
-p.add('-nw', '--no_wait', action='store_false',
-      help="If given, don't block after submitting array jobs. Default is"
-           " to call bwait after array jobs to block until array job"
-           "is done. You must check exit status of each job individually.")
+p.add('-er', '--error_file', required=False,
+      help="Name of log file for std err.",
+      default=None)
 
 
 def run(command,
@@ -103,7 +105,10 @@ def run(command,
         array_size=1,
         array_limit=None,
         log_file=None,
-        no_wait=False):
+        error_file=None):
+    ''' If execute, returns the jobid, or the job name if the jobid cannot
+    be found in stdout. if not execute, returns the assembled bsub
+    command as a string (if expand) or a list of strings (if not expand)'''
 
     if not singularity_image or singularity_image == "None":
         comment = ""
@@ -129,14 +134,17 @@ def run(command,
     else:
         log = "-o %J.log"
 
+    if error_file:
+        error = " -e {}".format(error_file)
+    else:
+        error = ""
+
     if not batch:
         submit_cmd = 'bsub -I -R "affinity[core(1)]"'
     elif array_size > 1:
-        submit_cmd = 'bsub -R "affinity[core(1)]" ' + log
-        if not no_wait:
-            bwait = "bwait -w 'ended({})'"
+        submit_cmd = 'bsub -R "affinity[core(1)]" ' + log + error
     else:
-        submit_cmd = 'bsub -K -R "affinity[core(1)]" ' + log
+        submit_cmd = 'bsub -K -R "affinity[core(1)]" ' + log + error
 
     if num_gpus <= 0:
         use_gpus = ""
@@ -157,8 +165,6 @@ def run(command,
     if array_size > 1:
         if not job_name:
             job_name = 'array_job'
-        if not no_wait:
-            bwait = bwait.format(job_name)
         job_name += "[1-{}]".format(array_size)
         if array_limit:
             job_name += "%{}".format(array_limit)
@@ -179,14 +185,23 @@ def run(command,
             return ' '.join(run_command)
     else:
         run_command = ' '.join(run_command)
-        check_call(run_command,
-                   shell=True)
-        if bwait:
-            check_call(bwait,
-                       shell=True)
+        output = sp.run(
+                run_command,
+                shell=True,
+                stdout=sp.PIPE,
+                encoding='UTF-8')
+        logger.debug("Command output: %s" % output)
+        print(output.stdout)
+        match = bsub_stdout_regex.match(output.stdout)
+        if not match:
+            logger.warn("Could not get jobid: returning job name")
+            return job_name
+        jobid = match.group(1)
+        return jobid
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     options = p.parse_args()
 
     command = options.p
@@ -205,22 +220,26 @@ if __name__ == "__main__":
     job_name = options.job_name
     array_size = options.array_size
     array_limit = options.array_limit
-    no_wait = options.no_wait
+    log_file = options.log_file
+    error_file = options.error_file
 
-    run(command,
-        num_cpus,
-        num_gpus,
-        memory,
-        working_dir,
-        singularity_image,
-        host,
-        queue,
-        environment_variable,
-        batch,
-        mount_dirs,
-        execute,
-        expand,
-        job_name,
-        array_size,
-        array_limit,
-        no_wait)
+    jobid_or_command = run(
+            command,
+            num_cpus,
+            num_gpus,
+            memory,
+            working_dir,
+            singularity_image,
+            host,
+            queue,
+            environment_variable,
+            batch,
+            mount_dirs,
+            execute,
+            expand,
+            job_name,
+            array_size,
+            array_limit,
+            log_file,
+            error_file)
+    logger.info("Job id or command: %s" % jobid_or_command)
