@@ -105,7 +105,8 @@ def run(command,
         array_size=1,
         array_limit=None,
         log_file=None,
-        error_file=None):
+        error_file=None,
+        flags=None):
     ''' If execute, returns the jobid, or the job name if the jobid cannot
     be found in stdout. if not execute, returns the assembled bsub
     command as a string (if expand) or a list of strings (if not expand)'''
@@ -116,7 +117,7 @@ def run(command,
         container_id = random.randint(0, 32767)
         os.environ["CONTAINER_NAME"] = "{}_{}".format(os.environ.get('USER'),
                                                       container_id)
-        comment = '"{}|{}"'.format(singularity_image, container_id)
+        comment = '{}|{}'.format(singularity_image, container_id)
         if environment_variable == "None":
             environment_variable = ""
         command = environment_variable + command
@@ -176,6 +177,8 @@ def run(command,
     run_command += ['-R "rusage[mem={}]"'.format(memory)]
     run_command += ["-q {}".format(queue)]
     run_command += ["{} {}".format(use_host, host)]
+    if flags:
+        run_command.extend(flags)
     run_command += [command]
 
     if not execute:
