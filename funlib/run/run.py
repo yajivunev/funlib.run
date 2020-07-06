@@ -87,6 +87,13 @@ p.add('-er', '--error_file', required=False,
       help="Name of log file for std err.",
       default=None)
 
+p.add('--flags',
+      help="Additional bsub flag(s) that are simply added as strings."
+      "Mostly for debugging, e.g. to limit jobs to a time use"
+      "'-W <time in minutes> or to retry all failed jobs use"
+      "'-Q \"all ~0\"",
+      default=None)
+
 
 def run(command,
         num_cpus=5,
@@ -225,6 +232,7 @@ if __name__ == "__main__":
     array_limit = options.array_limit
     log_file = options.log_file
     error_file = options.error_file
+    flags = options.flags
 
     jobid_or_command = run(
             command,
@@ -244,5 +252,6 @@ if __name__ == "__main__":
             array_size,
             array_limit,
             log_file,
-            error_file)
+            error_file,
+            flags)
     logger.info("Job id or command: %s" % jobid_or_command)
