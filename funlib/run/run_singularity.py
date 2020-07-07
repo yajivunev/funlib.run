@@ -63,7 +63,6 @@ def run_singularity(command,
                    shell=True)
 
 
-
 if __name__ == "__main__":
     options = p.parse_known_args()[0]
 
