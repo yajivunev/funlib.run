@@ -94,7 +94,7 @@ p.add('--flags',
       "'-Q \"all ~0\"",
       default=None)
 
-p.add('--cl', '--cluster', required=False, 
+p.add('-cl', '--cluster', required=False, 
       help="Cluster to run it on, choices are 'lsf' and 'slurm'",
       default="lsf")
 
@@ -102,6 +102,10 @@ p.add('-tacc', required=False, type=bool,
       help="whether or not running on TACC clusters",
       default=False)
 
+p.add('-t','--time',required=False, type=int,
+      help="allocated time, for slurm cluster",
+      default=30)
+ 
 def run(command,
         num_cpus=5,
         num_gpus=1,
@@ -122,7 +126,8 @@ def run(command,
         error_file=None,
         flags=None
         cluster="lsf"
-	tacc=False):
+	tacc=False
+        time=30):
     ''' If execute, returns the jobid, or the job name if the jobid cannot
     be found in stdout. if not execute, returns the assembled bsub
     command as a string (if expand) or a list of strings (if not expand)'''
@@ -281,9 +286,10 @@ def run(command,
 	    #run_command += ['-R "rusage[mem={}]"'.format(memory)]
 	    run_command += ["-p {}".format(queue)]
 	    run_command += ["{} {}".format(use_host, host)]
+	    run_command += ["-t {}".format(time)]
 	    if flags:
 		run_command.extend(flags)
-	    run_command += "--wrap={}".format(command)
+	    run_command += "--wrap='{}'".format(command)
 
 	    if not execute:
 		if not expand:
@@ -334,6 +340,7 @@ if __name__ == "__main__":
     flags = options.flags
     cluster = options.cluster
     tacc = options.tacc
+    time = options.time
 
     jobid_or_command = run(
             command,
@@ -356,5 +363,6 @@ if __name__ == "__main__":
             error_file,
             flags,
             cluster
-	    tacc)
+	    tacc
+	    time)
     logger.info("Job id or command: %s" % jobid_or_command)
