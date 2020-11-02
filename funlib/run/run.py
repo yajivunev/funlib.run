@@ -98,6 +98,10 @@ p.add('--cl', '--cluster', required=False,
       help="Cluster to run it on, choices are 'lsf' and 'slurm'",
       default="lsf")
 
+p.add('-tacc', required=False, type=bool,
+      help="whether or not running on TACC clusters",
+      default=False)
+
 def run(command,
         num_cpus=5,
         num_gpus=1,
@@ -117,7 +121,8 @@ def run(command,
         log_file=None,
         error_file=None,
         flags=None
-        cluster="lsf"):
+        cluster="lsf"
+	tacc=False):
     ''' If execute, returns the jobid, or the job name if the jobid cannot
     be found in stdout. if not execute, returns the assembled bsub
     command as a string (if expand) or a list of strings (if not expand)'''
@@ -134,7 +139,7 @@ def run(command,
 		    environment_variable = ""
 		command = environment_variable + command
 		command = run_singularity(command, singularity_image,
-					  working_dir, mount_dirs)
+					  working_dir, mount_dirs, tacc)
 
 	    if execute:
 		logger.info("Scheduling job on {} CPUs, {} GPUs.".format(
@@ -328,6 +333,7 @@ if __name__ == "__main__":
     error_file = options.error_file
     flags = options.flags
     cluster = options.cluster
+    tacc = options.tacc
 
     jobid_or_command = run(
             command,
@@ -349,5 +355,6 @@ if __name__ == "__main__":
             log_file,
             error_file,
             flags,
-            cluster)
+            cluster
+	    tacc)
     logger.info("Job id or command: %s" % jobid_or_command)
