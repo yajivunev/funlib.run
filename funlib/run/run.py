@@ -20,6 +20,10 @@ p.add('-c', '--num_cpus', required=False, type=int,
       help="Number of CPUs to request, default 5.",
       default=5)
 
+p.add('-n', '--num_tasks', required=False, type=int,
+      help="number of mpi tasks (for slurm)",
+      default=1)
+
 p.add('-g', '--num_gpus', required=False, type=int,
       help="Number of GPUs to request, default 1.",
       default=1)
@@ -98,16 +102,13 @@ p.add('-cl', '--cluster', required=False,
       help="Cluster to run it on, choices are 'lsf' and 'slurm'",
       default="lsf")
 
-p.add('-tacc', required=False, type=bool,
-      help="whether or not running on TACC clusters",
-      default=False)
-
 p.add('-t','--time',required=False, type=int,
       help="allocated time, for slurm cluster",
       default=30)
  
 def run(command,
         num_cpus=5,
+        num_tasks=1,
         num_gpus=1,
         memory=25600,
         working_dir=".",
@@ -126,7 +127,6 @@ def run(command,
         error_file=None,
         flags=None
         cluster="lsf"
-	tacc=False
         time=30):
     ''' If execute, returns the jobid, or the job name if the jobid cannot
     be found in stdout. if not execute, returns the assembled bsub
@@ -144,7 +144,7 @@ def run(command,
 		    environment_variable = ""
 		command = environment_variable + command
 		command = run_singularity(command, singularity_image,
-					  working_dir, mount_dirs, tacc)
+					  working_dir, mount_dirs)
 
 	    if execute:
 		logger.info("Scheduling job on {} CPUs, {} GPUs.".format(
@@ -254,7 +254,7 @@ def run(command,
 	    else:
 		error = ""
 	    
-	    submit_cmd = 'sbatch ' + log + error
+	    submit_cmd = 'srun ' + log + error
 
 	    if num_gpus <= 0:
 		use_gpus = ""
@@ -282,6 +282,7 @@ def run(command,
 	    if job_name:
 		run_command += ['--job-name="{}"'.format(job_name)]
 	    run_command += ["-N {}".format(num_cpus)]
+	    run_command += ["-n {}".format(num_tasks)]
 	    run_command += [use_gpus]
 	    #run_command += ['-R "rusage[mem={}]"'.format(memory)]
 	    run_command += ["-p {}".format(queue)]
@@ -289,7 +290,7 @@ def run(command,
 	    run_command += ["-t {}".format(time)]
 	    if flags:
 		run_command.extend(flags)
-	    run_command += "--wrap='{}'".format(command)
+	    run_command += [command]
 
 	    if not execute:
 		if not expand:
@@ -321,6 +322,7 @@ if __name__ == "__main__":
 
     command = options.p
     num_cpus = options.num_cpus
+    num_tasks = options.num_tasks
     num_gpus = options.num_gpus
     memory = options.memory
     working_dir = options.working_directory
@@ -339,12 +341,12 @@ if __name__ == "__main__":
     error_file = options.error_file
     flags = options.flags
     cluster = options.cluster
-    tacc = options.tacc
     time = options.time
 
     jobid_or_command = run(
             command,
             num_cpus,
+	    num_tasks,
             num_gpus,
             memory,
             working_dir,
@@ -362,7 +364,6 @@ if __name__ == "__main__":
             log_file,
             error_file,
             flags,
-            cluster
-	    tacc
+            cluster,
 	    time)
     logger.info("Job id or command: %s" % jobid_or_command)

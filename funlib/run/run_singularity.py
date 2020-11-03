@@ -27,17 +27,13 @@ p.add('-d', '--mount_dirs', required=False,
       help="Directories to mount in container.",
       default="")
 
-p.add('-tacc', required=False,type=bool,
-      help="whether or not running on TACC clusters, will prepend 'module load tacc-singularity'",
-      default=False)
 
 def run_singularity(command,
                     singularity_image,
                     working_dir=".",
                     mount_dirs=[],
                     execute=False,
-                    expand=True
-		    tacc=False):
+                    expand=True):
 
     if not singularity_image:
         raise ValueError("No singularity image provided.")
@@ -53,9 +49,6 @@ def run_singularity(command,
                     '--nv',
                     singularity_image,
                     command]
-
-    if tacc:
-	run_command.insert(0,'module load tacc-singularity; ')
 
     os.environ["NV_GPU"] = str(os.environ.get("CUDA_VISIBLE_DEVICES"))
 
@@ -78,11 +71,9 @@ if __name__ == "__main__":
     singularity_image = options.singularity
     mount_dirs = list(options.mount_dirs.split(","))
     execute = True
-    tacc = options.tacc
 
     run_singularity(command,
                     singularity_image,
                     working_dir,
                     mount_dirs,
-                    execute,
-		    tacc)
+                    execute)
