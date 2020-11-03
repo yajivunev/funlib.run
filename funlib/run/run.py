@@ -125,8 +125,8 @@ def run(command,
         array_limit=None,
         log_file=None,
         error_file=None,
-        flags=None
-        cluster="lsf"
+        flags=None,
+        cluster="lsf",
         time=30):
     ''' If execute, returns the jobid, or the job name if the jobid cannot
     be found in stdout. if not execute, returns the assembled bsub
