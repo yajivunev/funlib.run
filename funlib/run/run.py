@@ -133,188 +133,188 @@ def run(command,
     command as a string (if expand) or a list of strings (if not expand)'''
 
     if cluster == "lsf":
-	    if not singularity_image or singularity_image == "None":
-		comment = ""
-	    else:
-		container_id = random.randint(0, 32767)
-		os.environ["CONTAINER_NAME"] = "{}_{}".format(os.environ.get('USER'),
-							      container_id)
-		comment = '{}|{}'.format(singularity_image, container_id)
-		if environment_variable == "None":
-		    environment_variable = ""
-		command = environment_variable + command
-		command = run_singularity(command, singularity_image,
-					  working_dir, mount_dirs)
+        if not singularity_image or singularity_image == "None":
+        comment = ""
+        else:
+        container_id = random.randint(0, 32767)
+        os.environ["CONTAINER_NAME"] = "{}_{}".format(os.environ.get('USER'),
+                                  container_id)
+        comment = '{}|{}'.format(singularity_image, container_id)
+        if environment_variable == "None":
+            environment_variable = ""
+        command = environment_variable + command
+        command = run_singularity(command, singularity_image,
+                      working_dir, mount_dirs)
 
-	    if execute:
-		logger.info("Scheduling job on {} CPUs, {} GPUs.".format(
-				num_cpus, num_gpus) +
-			    " {} MB with container '{}' in working dir '{}'".format(
-				memory, singularity_image, working_dir))
+        if execute:
+        logger.info("Scheduling job on {} CPUs, {} GPUs.".format(
+                num_cpus, num_gpus) +
+                " {} MB with container '{}' in working dir '{}'".format(
+                memory, singularity_image, working_dir))
 
-	    if log_file:
-		log = "-o {}".format(log_file)
-	    else:
-		log = "-o %J.log"
+        if log_file:
+        log = "-o {}".format(log_file)
+        else:
+        log = "-o %J.log"
 
-	    if error_file:
-		error = " -e {}".format(error_file)
-	    else:
-		error = ""
+        if error_file:
+        error = " -e {}".format(error_file)
+        else:
+        error = ""
 
-	    if not batch:
-		submit_cmd = 'bsub -I -R "affinity[core(1)]"'
-	    elif array_size > 1:
-		submit_cmd = 'bsub -R "affinity[core(1)]" ' + log + error
-	    else:
-		submit_cmd = 'bsub -K -R "affinity[core(1)]" ' + log + error
+        if not batch:
+        submit_cmd = 'bsub -I -R "affinity[core(1)]"'
+        elif array_size > 1:
+        submit_cmd = 'bsub -R "affinity[core(1)]" ' + log + error
+        else:
+        submit_cmd = 'bsub -K -R "affinity[core(1)]" ' + log + error
 
-	    if num_gpus <= 0:
-		use_gpus = ""
-	    else:
-		use_gpus = '-gpu "num={}:mps=no"'.format(num_gpus)
+        if num_gpus <= 0:
+        use_gpus = ""
+        else:
+        use_gpus = '-gpu "num={}:mps=no"'.format(num_gpus)
 
-	    if not host or host == "None":
-		use_host = ""
-		host = ""
-	    else:
-		use_host = "-m"
+        if not host or host == "None":
+        use_host = ""
+        host = ""
+        else:
+        use_host = "-m"
 
-	    run_command = [submit_cmd]
+        run_command = [submit_cmd]
 
-	    if comment and not job_name:
-		job_name = comment
+        if comment and not job_name:
+        job_name = comment
 
-	    if array_size > 1:
-		if not job_name:
-		    job_name = 'array_job'
-		job_name += "[1-{}]".format(array_size)
-		if array_limit:
-		    job_name += "%{}".format(array_limit)
+        if array_size > 1:
+        if not job_name:
+            job_name = 'array_job'
+        job_name += "[1-{}]".format(array_size)
+        if array_limit:
+            job_name += "%{}".format(array_limit)
 
-	    if job_name:
-		run_command += ['-J "{}"'.format(job_name)]
-	    run_command += ["-n {}".format(num_cpus)]
-	    run_command += [use_gpus]
-	    run_command += ['-R "rusage[mem={}]"'.format(memory)]
-	    run_command += ["-q {}".format(queue)]
-	    run_command += ["{} {}".format(use_host, host)]
-	    if flags:
-		run_command.extend(flags)
-	    run_command += [command]
+        if job_name:
+        run_command += ['-J "{}"'.format(job_name)]
+        run_command += ["-n {}".format(num_cpus)]
+        run_command += [use_gpus]
+        run_command += ['-R "rusage[mem={}]"'.format(memory)]
+        run_command += ["-q {}".format(queue)]
+        run_command += ["{} {}".format(use_host, host)]
+        if flags:
+        run_command.extend(flags)
+        run_command += [command]
 
-	    if not execute:
-		if not expand:
-		    return run_command
-		else:
-		    return ' '.join(run_command)
-	    else:
-		run_command = ' '.join(run_command)
-		output = sp.run(
-			run_command,
-			shell=True,
-			stdout=sp.PIPE,
-			encoding='UTF-8')
-		logger.debug("Command output: %s" % output)
-		print(output.stdout)
-		match = bsub_stdout_regex.match(output.stdout)
-		if not match:
-		    logger.warn("Could not get jobid: returning job name")
-		    return job_name
-		jobid = match.group(1)
-		return jobid
+        if not execute:
+        if not expand:
+            return run_command
+        else:
+            return ' '.join(run_command)
+        else:
+        run_command = ' '.join(run_command)
+        output = sp.run(
+            run_command,
+            shell=True,
+            stdout=sp.PIPE,
+            encoding='UTF-8')
+        logger.debug("Command output: %s" % output)
+        print(output.stdout)
+        match = bsub_stdout_regex.match(output.stdout)
+        if not match:
+            logger.warn("Could not get jobid: returning job name")
+            return job_name
+        jobid = match.group(1)
+        return jobid
 
     elif cluster=="slurm":
- 	    if not singularity_image or singularity_image == "None":
-		comment = ""
-	    else:
-		container_id = random.randint(0, 32767)
-		os.environ["CONTAINER_NAME"] = "{}_{}".format(os.environ.get('USER'),
-							      container_id)
-		comment = '{}|{}'.format(singularity_image, container_id)
-		if environment_variable == "None":
-		    environment_variable = ""
-		command = environment_variable + command
-		command = run_singularity(command, singularity_image,
-					  working_dir, mount_dirs)
+        if not singularity_image or singularity_image == "None":
+        comment = ""
+        else:
+        container_id = random.randint(0, 32767)
+        os.environ["CONTAINER_NAME"] = "{}_{}".format(os.environ.get('USER'),
+                                  container_id)
+        comment = '{}|{}'.format(singularity_image, container_id)
+        if environment_variable == "None":
+            environment_variable = ""
+        command = environment_variable + command
+        command = run_singularity(command, singularity_image,
+                      working_dir, mount_dirs)
 
-	    if execute:
-		logger.info("Scheduling job on {} CPUs, {} GPUs.".format(
-				num_cpus, num_gpus) +
-			    " {} MB with container '{}' in working dir '{}'".format(
-				memory, singularity_image, working_dir))
+        if execute:
+        logger.info("Scheduling job on {} CPUs, {} GPUs.".format(
+                num_cpus, num_gpus) +
+                " {} MB with container '{}' in working dir '{}'".format(
+                memory, singularity_image, working_dir))
 
-	    if log_file:
-		log = "-o {}".format(log_file)
-	    else:
-		log = "-o %J.log"
+        if log_file:
+        log = "-o {}".format(log_file)
+        else:
+        log = "-o %J.log"
 
-	    if error_file:
-		error = " -e {}".format(error_file)
-	    else:
-		error = ""
-	    
-	    submit_cmd = 'srun ' + log + error
+        if error_file:
+        error = " -e {}".format(error_file)
+        else:
+        error = ""
+        
+        submit_cmd = 'srun ' + log + error
 
-	    if num_gpus <= 0:
-		use_gpus = ""
-	    else:
-		use_gpus = '--gpus={}'.format(num_gpus)
+        if num_gpus <= 0:
+        use_gpus = ""
+        else:
+        use_gpus = '--gpus={}'.format(num_gpus)
 
-	    if not host or host == "None":
-		use_host = ""
-		host = ""
-	    else:
-		use_host = "--nodelist="
+        if not host or host == "None":
+        use_host = ""
+        host = ""
+        else:
+        use_host = "--nodelist="
 
-	    run_command = [submit_cmd]
+        run_command = [submit_cmd]
 
-	    if comment and not job_name:
-		job_name = comment
+        if comment and not job_name:
+        job_name = comment
 
-	    if array_size > 1:
-		if not job_name:
-		    job_name = 'array_job'
-		job_name += "[1-{}]".format(array_size)
-		if array_limit:
-		    job_name += "%{}".format(array_limit)
+        if array_size > 1:
+        if not job_name:
+            job_name = 'array_job'
+        job_name += "[1-{}]".format(array_size)
+        if array_limit:
+            job_name += "%{}".format(array_limit)
 
-	    if job_name:
-		run_command += ['--job-name="{}"'.format(job_name)]
-	    run_command += ["-N {}".format(num_cpus)]
-	    run_command += ["-n {}".format(num_tasks)]
-	    run_command += [use_gpus]
-	    #run_command += ['-R "rusage[mem={}]"'.format(memory)]
-	    run_command += ["-p {}".format(queue)]
-	    run_command += ["{} {}".format(use_host, host)]
-	    run_command += ["-t {}".format(time)]
-	    if flags:
-		run_command.extend(flags)
-	    run_command += [command]
+        if job_name:
+        run_command += ['--job-name="{}"'.format(job_name)]
+        run_command += ["-N {}".format(num_cpus)]
+        run_command += ["-n {}".format(num_tasks)]
+        run_command += [use_gpus]
+        #run_command += ['-R "rusage[mem={}]"'.format(memory)]
+        run_command += ["-p {}".format(queue)]
+        run_command += ["{} {}".format(use_host, host)]
+        run_command += ["-t {}".format(time)]
+        if flags:
+        run_command.extend(flags)
+        run_command += [command]
 
-	    if not execute:
-		if not expand:
-		    return run_command
-		else:
-		    return ' '.join(run_command)
-	    else:
-		run_command = ' '.join(run_command)
-		output = sp.run(
-			run_command,
-			shell=True,
-			stdout=sp.PIPE,
-			encoding='UTF-8')
-		logger.debug("Command output: %s" % output)
-		print(output.stdout)
-		match = bsub_stdout_regex.match(output.stdout)
-		if not match:
-		    logger.warn("Could not get jobid: returning job name")
-		    return job_name
-		jobid = match.group(1)
-		return jobid
+        if not execute:
+        if not expand:
+            return run_command
+        else:
+            return ' '.join(run_command)
+        else:
+        run_command = ' '.join(run_command)
+        output = sp.run(
+            run_command,
+            shell=True,
+            stdout=sp.PIPE,
+            encoding='UTF-8')
+        logger.debug("Command output: %s" % output)
+        print(output.stdout)
+        match = bsub_stdout_regex.match(output.stdout)
+        if not match:
+            logger.warn("Could not get jobid: returning job name")
+            return job_name
+        jobid = match.group(1)
+        return jobid
 
     else: 
-	    raise ValueError('specify lsf or slurm as cluster')   
+        raise ValueError('specify lsf or slurm as cluster')   
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -346,7 +346,7 @@ if __name__ == "__main__":
     jobid_or_command = run(
             command,
             num_cpus,
-	    num_tasks,
+        num_tasks,
             num_gpus,
             memory,
             working_dir,
@@ -365,5 +365,5 @@ if __name__ == "__main__":
             error_file,
             flags,
             cluster,
-	    time)
+        time)
     logger.info("Job id or command: %s" % jobid_or_command)
